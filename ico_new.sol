@@ -144,12 +144,14 @@ contract CrowdsaleToken is StandardToken, Configurable, Ownable {
     }
     
     Stages currentStage;
+    address payable owner;
  
     constructor() public {
         currentStage = Stages.none;
         balances[owner] = balances[owner].add(tokenReserve);
         totalSupply_ = totalSupply_.add(tokenReserve);
         remainingTokens = cap;
+        owner = msg.sender;
         emit Transfer(address(this), owner, tokenReserve);
     }
     
@@ -181,7 +183,7 @@ contract CrowdsaleToken is StandardToken, Configurable, Ownable {
         balances[msg.sender] = balances[msg.sender].add(tokens);
         emit Transfer(address(this), msg.sender, tokens);
         totalSupply_ = totalSupply_.add(tokens);
-        msg.sender.transfer(weiAmount);// Send money to owner
+        address(owner).transfer(weiAmount);// Send money to owner
     }
 
     function startIco() public onlyOwner {
@@ -195,7 +197,7 @@ contract CrowdsaleToken is StandardToken, Configurable, Ownable {
         if(remainingTokens > 0)
             balances[owner] = balances[owner].add(remainingTokens);
         // transfer any remaining ETH balance in the contract to the owner
-        msg.sender.transfer(address(this).balance); 
+        address(owner).transfer(address(this).balance); 
     }
 
     function finalizeIco() public onlyOwner {
