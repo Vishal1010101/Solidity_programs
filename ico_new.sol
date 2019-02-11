@@ -49,11 +49,11 @@ contract Ownable {
 contract ERC20 {
     function totalSupply() public view returns (uint256);
     function balanceOf(address who) public view returns (uint256);
-    function transfer(address to, uint256 value) public returns (bool);
+    function transfer(address to, uint256 value) internal returns (bool);
     event Transfer(address indexed from, address indexed to, uint256 value);
     
     function allowance(address owner, address spender) public view returns (uint256);
-    function transferFrom(address from, address to, uint256 value) public returns (bool);
+    function transferFrom(address from, address to, uint256 value) internal returns (bool);
     function approve(address spender, uint256 value) public returns (bool);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
@@ -71,7 +71,7 @@ contract StandardToken is ERC20 {
         return totalSupply_;
     }
  
-    function transfer(address _to, uint256 _value) public returns (bool) {
+    function transfer(address _to, uint256 _value) internal returns (bool) {
         require(_to != address(0));
         require(_value <= balances[msg.sender]);
         
@@ -85,7 +85,7 @@ contract StandardToken is ERC20 {
         return balances[_owner];
     }
   
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) internal returns (bool) {
         require(_to != address(0));
         require(_value <= balances[_from]);
         require(_value <= allowed[_from][msg.sender]);
@@ -109,13 +109,13 @@ contract StandardToken is ERC20 {
         return allowed[_owner][_spender];
     }
   
-   function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
+   function increaseApproval(address _spender, uint _addedValue) internal returns (bool) {
         allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
   
-    function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool) {
+    function decreaseApproval(address _spender, uint _subtractedValue) internal returns (bool) {
         uint oldValue = allowed[msg.sender][_spender];
         if (_subtractedValue > oldValue) {
             allowed[msg.sender][_spender] = 0;
@@ -137,21 +137,19 @@ contract Configurable {
 }
 
 contract CrowdsaleToken is StandardToken, Configurable, Ownable {
-     enum Stages {
-        none,
-        icoStart, 
-        icoEnd
-    }
     
+    enum Stages {none,icoStart, icoEnd }
     Stages currentStage;
-    address payable owner;
- 
+    
+    string public constant name = "Tokenizer";
+    string public constant symbol = "TZR";
+    uint32 public constant decimals = 18;
+
     constructor() public {
         currentStage = Stages.none;
         balances[owner] = balances[owner].add(tokenReserve);
         totalSupply_ = totalSupply_.add(tokenReserve);
         remainingTokens = cap;
-        owner = msg.sender;
         emit Transfer(address(this), owner, tokenReserve);
     }
     
@@ -176,14 +174,17 @@ contract CrowdsaleToken is StandardToken, Configurable, Ownable {
         tokensSold = tokensSold.add(tokens); // Increment raised amount
         remainingTokens = cap.sub(tokensSold);
         if(returnWei > 0){
-            msg.sender.transfer(returnWei);
+            bought(returnWei);
             emit Transfer(address(this), msg.sender, returnWei);
         }
-        
+
         balances[msg.sender] = balances[msg.sender].add(tokens);
         emit Transfer(address(this), msg.sender, tokens);
         totalSupply_ = totalSupply_.add(tokens);
-        address(owner).transfer(weiAmount);// Send money to owner
+    }
+    
+    function bought(uint _value) private{
+        msg.sender.transfer(_value);
     }
 
     function startIco() public onlyOwner {
@@ -197,17 +198,11 @@ contract CrowdsaleToken is StandardToken, Configurable, Ownable {
         if(remainingTokens > 0)
             balances[owner] = balances[owner].add(remainingTokens);
         // transfer any remaining ETH balance in the contract to the owner
-        address(owner).transfer(address(this).balance); 
+        msg.sender.transfer(address(this).balance); 
     }
 
     function finalizeIco() public onlyOwner {
         require(currentStage != Stages.icoEnd);
         endIco();
     }
-}
-
-contract CustomizeToken is CrowdsaleToken {
-    string public constant name = "Tokenizer";
-    string public constant symbol = "TZR";
-    uint32 public constant decimals = 18;
 }
