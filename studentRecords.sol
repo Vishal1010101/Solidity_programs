@@ -1,6 +1,6 @@
 pragma solidity ^0.5.1;
 
-contract studentRecord{
+contract StudentRecord{
     
     address internal owner;
     
@@ -30,6 +30,7 @@ contract studentRecord{
     }
     
     function displayRecords(uint index) public view returns(string memory, string memory, uint, address){
+        require(index >=0);
         return(allStudents[index].name, allStudents[index].courses, allStudents[index].age, allStudents[index].rollno);
     }
     
