@@ -109,8 +109,7 @@ contract Auction_product{
     
     function buy(uint index) public payable onlyOwner { 
         require(allProduct[index].approvalCount > (count/2));
-        require(msg.value >= allProduct[index].price);
-        address(allProduct[index].vendor).transfer(msg.value);
+        address(allProduct[index].vendor).transfer(allProduct[index].price);
     }
-      
+    
 }
