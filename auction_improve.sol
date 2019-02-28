@@ -5,7 +5,7 @@ contract Auction_product{
     AuctionState public state;
     
     address payable owner;
-    uint public startingPrice=1;
+    uint public startingPrice= 1 wei;
     uint public highestBid;
     address payable highestBidder;
     uint countOfProduct;
@@ -14,7 +14,6 @@ contract Auction_product{
     event HighestBidIncreased(address bidder, uint amount);
     event AuctionEnded(address winner, uint amount);
     uint public count;
-    
     
     struct Product{
         uint id;
@@ -64,11 +63,9 @@ contract Auction_product{
         count++;
     }
     
-    
-    
-    function withdraw() internal {
-        uint amount = pendingReturns[msg.sender];
-        require(amount > 0);
+    function withdraw() public {
+        uint returnAmount = pendingReturns[msg.sender];
+        require(returnAmount > 0);
         if (state == AuctionState.cancelled) {
             safeWithdraw();
         } else {
@@ -79,8 +76,8 @@ contract Auction_product{
     }
     
     function safeWithdraw() internal {
-        uint amount = pendingReturns[msg.sender];
-        msg.sender.transfer(amount);
+        uint returnAmount = pendingReturns[msg.sender];
+        msg.sender.transfer(returnAmount);
     }
     
     function auctionEnd() public {
@@ -99,23 +96,21 @@ contract Auction_product{
         require(msg.sender == owner);
         state=AuctionState.cancelled;
     }
-    mapping(address => mapping(string => bool)) checkBidder;
+   
+    mapping(address => mapping(uint => bool)) checkBidder;
     
-    function approve(string memory nameOfproduct, uint id) public{
+    function approve(uint index) public{
         require(bidders[msg.sender]==true);
-        require(checkBidder[msg.sender][nameOfproduct]==false);
-        allProduct[id].approvalCount++;
-        allProduct[id].complete = true;
+        require(checkBidder[msg.sender][index]==false);
+        allProduct[index].approvalCount++;
+        allProduct[index].complete = true;
+        checkBidder[msg.sender][index] = true;
     }
     
-    function buy(uint id) public payable {
-        require(msg.value >= allProduct[id].price);
-        address(allProduct[id].vendor).transfer(msg.value);
+    function buy(uint index) public payable onlyOwner { 
+        require(allProduct[index].approvalCount > (count/2));
+        require(msg.value >= allProduct[index].price);
+        address(allProduct[index].vendor).transfer(msg.value);
     }
-    
-    function approveBuy(uint id) public onlyOwner{
-        require(allProduct[id].approvalCount > (count/2));
-        buy(id);
-    }
-    
+      
 }
